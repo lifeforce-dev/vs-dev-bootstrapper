@@ -1,16 +1,29 @@
 import dearpygui.dearpygui as dpg
 from enum import Enum
+from pathlib import Path
+import argparse
+import json
+import os
+
+SLN_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
 
 class Package(Enum):
     ARGPARSE = 1
     SPDLOG = 2
     CATCH2 = 3
 
-packages_data = {
-    Package.ARGPARSE: {"DisplayName": "p-ranav/argparse", "GitHubURL": "https://github.com/p-ranav/argparse.git"},
-    Package.SPDLOG: {"DisplayName": "gabime/spdlog", "GitHubURL": "https://github.com/gabime/spdlog.git"},
-    Package.CATCH2: {"DisplayName": "catchorg/Catch2", "GitHubURL": "https://github.com/catchorg/Catch2.git"}
-}
+
+def load_json(file_path):
+    with open(file_path, 'r') as file:
+        return json.load(file)
+
+dependency_keys_path = SLN_DIR / 'premake' / 'dependency_keys.json'
+dependency_keys = load_json(dependency_keys_path)['dependency_keys']
+
+try:
+    dependencies = load_json(SLN_DIR / 'dependencies.json')
+except FileNotFoundError:
+    dependencies = {}
 
 class SolutionNameMissingException(Exception):
     def __init__(self, message="Solution name cannot be empty"):
@@ -23,35 +36,39 @@ class PackageSelectorGUI:
         self.selected_packages = set()
         self.solution_name = ""
         self.checkboxes = {}
-        self.window_id = None  # Initialize window_id
+        self.dropdowns = {}
+        self.window_id = None
         self.create_gui()
 
-
     def create_gui(self):
-        # Create the window and get the ID
         self.window_id = dpg.add_window(label="Package Selector", no_scrollbar=True,
                                         menubar=False, no_resize=True, no_move=True)
-        
         with dpg.window(id=self.window_id):
-
-            # input text
             self.solution_name_id = dpg.add_input_text(hint="Enter Solution Name")
+            for package_name, package_info in dependency_keys.items():
+                with dpg.group(horizontal=True):
+                    checkbox_id = dpg.add_checkbox(label=package_name,
+                                                   callback=self.on_checkbox_checked,
+                                                   user_data=package_name)
+                    self.checkboxes[checkbox_id] = package_name
+                    # Set checkbox state
+                    is_checked = package_name in dependencies
+                    dpg.set_value(checkbox_id, is_checked)
 
-            # Checkbox group
-            for package in Package:
-                checkbox_id = dpg.add_checkbox(label=packages_data[package]['DisplayName'],
-                                            callback=self.on_checkbox_checked, user_data=package)
-                self.checkboxes[checkbox_id] = package
+                    # Dropdown for versions
+                    dropdown_id = dpg.add_combo(package_info['versions'],
+                                                default_value=dependencies.get(package_name, package_info['versions'][0]),
+                                                user_data=package_name,
+                                                callback=self.on_dropdown_changed)
+                    self.dropdowns[dropdown_id] = package_name
 
-            # Button
             self.generate_button_id = dpg.add_button(label="Generate", callback=self.on_generate_clicked)
-
             dpg.set_item_callback(self.solution_name_id, self.on_solution_text_changed)
             dpg.set_item_user_data(self.solution_name_id, self.generate_button_id)
-
-            # Disable until minimum config is setup.
             dpg.disable_item(self.generate_button_id)
 
+    def on_dropdown_changed(self, sender, app_data, user_data):
+        print("dropdown changed")
 
     def on_checkbox_checked(self, sender, app_data, user_data):
         package = user_data
@@ -69,9 +86,9 @@ class PackageSelectorGUI:
         
         except SolutionNameMissingException as e:
             print(e)
-        for package in self.selected_packages:
-            data = packages_data[package]
-            print(f"{data['DisplayName']}: {data['GitHubURL']}")
+        #for package in self.selected_packages:
+           # data = packages_data[package]
+            #print(f"{data['DisplayName']}: {data['GitHubURL']}")
 
 
     def on_solution_text_changed(self, sender, app_data, user_data):
