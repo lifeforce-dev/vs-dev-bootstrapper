@@ -1,30 +1,27 @@
--- premake5.lua for the solution located at sln_root/premake5.lua
-
 local config = require "common_paths"
+local package_info = require "package_info"
 
 workspace "package_mgr_demo"
+
     architecture "x64"
     startproject "package_mgr_demo"
 
     configurations { "Debug", "Release" }
 
-    -- TODO: Revisit this. Since my design has changed, this probably does not need to live
-    -- in the package_cache anymore. 1) This should be generated and 2) leave in home repo.
-    local spdlog_premake_script_path = path.join(config.package_cache, "config", "spdlog",
-        "ac55e60488032b9acde8940a5de099541c4515da", "premake5.lua")
-
-    -- Include the spdlog premake script to set up its project
     group "contrib"
-        include(spdlog_premake_script_path)
+    for name, pkg in pairs(package_info.packages) do
+        local premake_script_path = path.join(config.sln_dir, "premake/supported-packages",
+                                              name, pkg.version, "premake5.lua")
+        include(premake_script_path)
+    end
     group ""
+    -- Top level directories in this dir will be treated as the root for a .vcxproj.
+    local source_dir = path.join(config.sln_dir, "source")
 
-    -- Define user projects based on top-level directories in sln_dir/source/
-    local source_dir = path.join(config.sln_dir, "source") -- No trailing slash needed
-
-    -- Use a custom function to find all top-level directories in source_dir
+    -- Returns a list of dirs to be treated as .vcxproj dirs.
     local function find_projects(src_path)
         local projects = {}
-        local p = io.popen('dir "' .. src_path .. '" /b /ad') -- Assuming Windows
+        local p = io.popen('dir "' .. src_path .. '" /b /ad')
         for directory in p:lines() do
             table.insert(projects, directory)
         end
@@ -32,7 +29,7 @@ workspace "package_mgr_demo"
         return projects
     end
 
-    -- Create projects for each top-level directory
+    -- The .vcxproj filters will be setup identical to the folder structure of its root dir.
     local projects = find_projects(source_dir)
     for _, project_name in ipairs(projects) do
         project (project_name)
@@ -43,25 +40,28 @@ workspace "package_mgr_demo"
             targetdir (config.bin_dir)
             objdir (path.join(config.obj_dir, project_name))
 
-            -- Add all files from the project directory and subdirectories
             files {
                 path.join(source_dir, project_name, "**.cpp"),
                 path.join(source_dir, project_name, "**.h")
             }
 
-            -- Reflect the directory structure in the project using vpaths
-            vpaths {
-                ["src/*"] = path.join(source_dir, project_name, "src", "**.cpp"),
-                ["include/*"] = path.join(source_dir, project_name, "include", "**.h"),
-                ["*"] = { path.join(source_dir, project_name, "*.cpp"), path.join(source_dir, project_name, "*.h") }
-            }
+            -- Handle includes for user source.
+            local project_includedirs = { path.join(source_dir, project_name, "include") }
 
-            includedirs {
-                path.join(source_dir, project_name, "include"),
-                path.join(config.package_cache, "spdlog", "include")
-            }
+            -- Handle includes for packages.
+            for _, pkg in pairs(package_info.packages) do
+                table.insert(project_includedirs, path.join(config.package_cache, pkg.include_path))
+            end
 
-            links { "spdlog" }
+            includedirs(project_includedirs)
+
+            -- Handle linking packages
+            local project_links = {}
+            for name, pkg in pairs(package_info.packages) do
+                table.insert(project_links, pkg.link_name)
+            end
+
+            links(project_links)
 
             filter "configurations:Debug"
                 defines { "DEBUG" }

@@ -1,4 +1,3 @@
--- common_config.lua
 newoption {
     trigger = "sln_dir",
     value = "PATH",
@@ -10,8 +9,20 @@ if not _OPTIONS["sln_dir"] then
     os.exit(1)
 end
 
+-- Packages are stored in this path. 
 local package_cache = os.getenv("PACKAGE_CACHE_PATH")
+if not package_cache then
+    print ("Error: PACKAGE_CACHE_PATH environment variable must be set.")
+    os.exit(1)
+end
 
+-- Auto-generated premake related files will be in here.
+local generated_dir = path.join(sln_dir, "premake", "generated")
+
+-- Tell lua where generated lua things will be
+package.path = package.path .. ";".. path.join(generated_dir, "?.lua")
+
+-- This is the root solution dir. All paths will be treated as relative to this dir.
 local sln_dir = _OPTIONS["sln_dir"]
 
 local base_build_dir = path.join(sln_dir, "build")

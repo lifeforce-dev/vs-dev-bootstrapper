@@ -1,0 +1,12 @@
+{
+    "dependency_keys": {
+        "spdlog": {
+            "git_url": "https://github.com/gabime/spdlog.git",
+            "premake_path": "premake/packages/spdlog/",
+            "versions": [
+                "git|ac55e60488032b9acde8940a5de099541c4515da",
+                "v1.12.0"
+            ]
+        }
+    }
+}

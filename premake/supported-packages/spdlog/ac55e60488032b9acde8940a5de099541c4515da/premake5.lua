@@ -1,5 +1,3 @@
--- premake5.lua for spdlog located at package_cache/config/spdlog/<hash>/premake5.lua
-
 local config = require "common_paths"
 
 local sln_dir = _OPTIONS["sln_dir"]
