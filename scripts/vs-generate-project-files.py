@@ -44,34 +44,42 @@ class PackageSelectorGUI:
         self.window_id = dpg.add_window(label="Package Selector", no_scrollbar=True,
                                         menubar=False, no_resize=True, no_move=True)
         with dpg.window(id=self.window_id):
+            # Edit box
             self.solution_name_id = dpg.add_input_text(hint="Enter Solution Name")
+            dpg.set_item_callback(self.solution_name_id, self.on_solution_text_changed)
+
+            # Package Items
             for package_name, package_info in dependency_keys.items():
                 with dpg.group(horizontal=True):
+                    # Checkbox
                     checkbox_id = dpg.add_checkbox(label=package_name,
                                                    callback=self.on_checkbox_checked,
                                                    user_data=package_name)
                     self.checkboxes[checkbox_id] = package_name
-                    # Set checkbox state
+
                     is_checked = package_name in dependencies
                     dpg.set_value(checkbox_id, is_checked)
 
-                    # Dropdown for versions
+                    # Dropdown
                     dropdown_id = dpg.add_combo(package_info['versions'],
                                                 default_value=dependencies.get(package_name, package_info['versions'][0]),
                                                 user_data=package_name,
                                                 callback=self.on_dropdown_changed)
                     self.dropdowns[dropdown_id] = package_name
 
+            # Generate Button
             self.generate_button_id = dpg.add_button(label="Generate", callback=self.on_generate_clicked)
-            dpg.set_item_callback(self.solution_name_id, self.on_solution_text_changed)
-            dpg.set_item_user_data(self.solution_name_id, self.generate_button_id)
             dpg.disable_item(self.generate_button_id)
+
+            dpg.set_item_user_data(self.solution_name_id, self.generate_button_id)
 
     def on_dropdown_changed(self, sender, app_data, user_data):
         print("dropdown changed")
 
     def on_checkbox_checked(self, sender, app_data, user_data):
         package = user_data
+        check_state_str = "Checked" if app_data else "Unchecked"
+        print(f"{check_state_str} {package}")
         if app_data:
             self.selected_packages.add(package)
         else:
@@ -86,10 +94,6 @@ class PackageSelectorGUI:
         
         except SolutionNameMissingException as e:
             print(e)
-        #for package in self.selected_packages:
-           # data = packages_data[package]
-            #print(f"{data['DisplayName']}: {data['GitHubURL']}")
-
 
     def on_solution_text_changed(self, sender, app_data, user_data):
         self.solution_name = dpg.get_value(sender)
