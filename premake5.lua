@@ -49,8 +49,10 @@ workspace "package_mgr_demo"
             local project_includedirs = { path.join(source_dir, project_name, "include") }
 
             -- Handle includes for packages.
-            for _, pkg in pairs(package_info.packages) do
-                table.insert(project_includedirs, path.join(config.package_cache, pkg.include_path))
+            for pkg_name, pkg_details in pairs(package_info.packages) do
+                local include_path = path.join(config.package_cache, pkg_name, pkg_details.version,
+                                               pkg_details.include_path)
+                table.insert(project_includedirs, path.join(config.package_cache, include_path))
             end
 
             includedirs(project_includedirs)

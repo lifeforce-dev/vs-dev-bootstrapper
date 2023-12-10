@@ -1,7 +1,7 @@
 return {
     packages = {
         spdlog = {
-            version = "ac55e60488032b9acde8940a5de099541c4515da",
+            version = "ac55e604",
             include_path = "spdlog/include",
             link_name = "spdlog"
         }
