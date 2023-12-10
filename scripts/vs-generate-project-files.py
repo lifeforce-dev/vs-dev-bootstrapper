@@ -9,24 +9,9 @@ import os
 from git_helper import GitHelper
 
 SLN_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
+PACKAGE_STORE_PATH = SLN_DIR / 'premake' / 'package_store.json'
+DEPENDENCIES_PATH = SLN_DIR / 'dependencies.json'
 
-class Package(Enum):
-    ARGPARSE = 1
-    SPDLOG = 2
-    CATCH2 = 3
-
-
-def load_json(file_path):
-    with open(file_path, 'r') as file:
-        return json.load(file)
-
-dependency_keys_path = SLN_DIR / 'premake' / 'dependency_keys.json'
-dependency_keys = load_json(dependency_keys_path)['dependency_keys']
-
-try:
-    dependencies = load_json(SLN_DIR / 'dependencies.json')
-except FileNotFoundError:
-    dependencies = {}
 
 class SolutionNameMissingException(Exception):
     def __init__(self, message="Solution name cannot be empty"):
@@ -41,10 +26,35 @@ class PackageSelectorGUI:
         self.checkboxes = {}
         self.dropdowns = {}
         self.window_id = None
+        self.output_dir_label_id = None
+        self.dependencies = {}
+        self.package_store = {}
         self.create_gui()
 
 
+    def load_package_store(self):
+        try:
+            with open(PACKAGE_STORE_PATH) as file:
+                self.package_store = json.load(file)['package_store']
+        except FileNotFoundError:
+            self.package_store = {}
+
+
+    def load_dependencies(self):
+        try:
+            with open(DEPENDENCIES_PATH) as file:
+                self.dependencies = json.load(file)
+        except FileNotFoundError:
+            self.dependencies = {}
+
+
+    def load_settings(self):
+        print("load settings")
+
+
     def create_gui(self):
+        self.load_package_store()
+        self.load_dependencies()
         self.window_id = dpg.add_window(label="Package Selector", no_scrollbar=True,
                                         menubar=False, no_resize=True, no_move=True)
         with dpg.window(id=self.window_id):
@@ -53,7 +63,7 @@ class PackageSelectorGUI:
             dpg.set_item_callback(self.solution_name_id, self.on_solution_text_changed)
 
             # Package Items
-            for package_name, package_info in dependency_keys.items():
+            for package_name, package_info in self.package_store.items():
                 with dpg.group(horizontal=True):
                     # Checkbox
                     checkbox_id = dpg.add_checkbox(label=package_name,
@@ -61,12 +71,12 @@ class PackageSelectorGUI:
                                                    user_data=package_name)
                     self.checkboxes[checkbox_id] = package_name
 
-                    is_checked = package_name in dependencies
+                    is_checked = package_name in self.dependencies
                     dpg.set_value(checkbox_id, is_checked)
 
                     # Dropdown
                     dropdown_id = dpg.add_combo(package_info['versions'],
-                                                default_value=dependencies.get(package_name, package_info['versions'][0]),
+                                                default_value=self.dependencies.get(package_name, package_info['versions'][0]),
                                                 user_data=package_name,
                                                 callback=self.on_dropdown_changed)
                     self.dropdowns[dropdown_id] = package_name

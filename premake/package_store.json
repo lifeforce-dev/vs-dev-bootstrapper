@@ -1,5 +1,5 @@
 {
-    "dependency_keys": {
+    "package_store": {
         "spdlog": {
             "premake_path": "premake/packages/spdlog/",
             "include_path": "spdlog/include",
