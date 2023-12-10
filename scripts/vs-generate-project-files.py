@@ -92,6 +92,18 @@ class PackageSelectorGUI:
 
 
     def on_generate_clicked(self, sender, app_data, user_data):
+        """
+        TODO:
+        So, what's gonna happen here is generate button is only available
+        when the script is run in "Generate" mode. This is basically only
+        when you're running from the repository for the simple-package-manager.
+        This mode is specified by a .ini file.\
+
+        Once the user presses "generate", the ini file will get created in the destination
+        and the mode will be "Update". In this mode, an Update button will be there in place
+        of the Generate button. The user can still add/remove/modify their dependencies,
+        but everything happens in place in that solution rather than generating a new one.
+        """
         self.solution_name = dpg.get_value(self.solution_name_id)
         try:
             if not self.solution_name.strip():
