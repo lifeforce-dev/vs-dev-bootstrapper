@@ -40,6 +40,7 @@ class PackageSelectorGUI:
         self.window_id = None
         self.create_gui()
 
+
     def create_gui(self):
         self.window_id = dpg.add_window(label="Package Selector", no_scrollbar=True,
                                         menubar=False, no_resize=True, no_move=True)
@@ -73,6 +74,7 @@ class PackageSelectorGUI:
 
             dpg.set_item_user_data(self.solution_name_id, self.generate_button_id)
 
+
     def on_dropdown_changed(self, sender, app_data, user_data):
         self.update_dependencies()
 
@@ -97,6 +99,7 @@ class PackageSelectorGUI:
         
         except SolutionNameMissingException as e:
             print(e)
+
 
     def on_solution_text_changed(self, sender, app_data, user_data):
         self.solution_name = dpg.get_value(sender)
