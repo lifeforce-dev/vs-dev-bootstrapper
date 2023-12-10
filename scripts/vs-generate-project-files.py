@@ -5,6 +5,9 @@ import argparse
 import json
 import os
 
+#TODO: When we clone, we need to clone into package_cache/package_key_name/version/
+from git_helper import GitHelper
+
 SLN_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
 
 class Package(Enum):
