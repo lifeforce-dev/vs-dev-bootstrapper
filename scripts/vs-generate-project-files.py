@@ -74,7 +74,8 @@ class PackageSelectorGUI:
             dpg.set_item_user_data(self.solution_name_id, self.generate_button_id)
 
     def on_dropdown_changed(self, sender, app_data, user_data):
-        print("dropdown changed")
+        self.update_dependencies()
+
 
     def on_checkbox_checked(self, sender, app_data, user_data):
         package = user_data
@@ -84,6 +85,8 @@ class PackageSelectorGUI:
             self.selected_packages.add(package)
         else:
             self.selected_packages.discard(package)
+
+        self.update_dependencies()
 
 
     def on_generate_clicked(self, sender, app_data, user_data):
@@ -102,6 +105,20 @@ class PackageSelectorGUI:
         else:
             dpg.disable_item(user_data)
 
+
+    def update_dependencies(self):
+        # This is the simplest and least error-prone way to update our depdencies.
+        # Is it the most efficient? No, but we're talking about dozens of dependencies at most.
+        updated_dependencies = {}
+        for checkbox_id, package_name in self.checkboxes.items():
+            if dpg.get_value(checkbox_id):  # Check if the checkbox is checked
+                dropdown_id = next(key for key, value in self.dropdowns.items() if value == package_name)
+                dropdown_value = dpg.get_value(dropdown_id)
+                updated_dependencies[package_name] = dropdown_value
+
+        # Update the dependencies file
+        with open(SLN_DIR / 'dependencies.json', 'w') as file:
+            json.dump(updated_dependencies, file, indent=4)
 
 def main():
     dpg.create_context()
