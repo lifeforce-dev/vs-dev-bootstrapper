@@ -1,7 +1,20 @@
 local config = require "common_paths"
 local package_info = require "package_info"
 
-workspace "package_mgr_demo"
+newoption {
+    trigger = "sln_name",
+    value = "NAME",
+    description = "The name of the solution"
+}
+
+if not _OPTIONS["sln_name"] then
+    print("Error: You must provide a solution name.")
+    os.exit(1)
+end
+
+print("working dir" .. os.getcwd())
+
+workspace (_OPTIONS["sln_name"])
 
     architecture "x64"
     startproject "package_mgr_demo"

@@ -3,7 +3,7 @@ import subprocess
 
 class GitHelper:
     @staticmethod
-    def is_repo_path_valid(repo_path):
+    def does_repo_exist(repo_path):
         """Check if the path is a valid Git repository."""
         if not os.path.exists(repo_path):
             return False
@@ -15,6 +15,7 @@ class GitHelper:
     def run_git_command(repo_path, command):
         """Run a git command in the given repository path and return the output."""
         try:
+            print (f"running git command{command}")
             result = subprocess.run(
                 ["git"] + command,
                 cwd=repo_path,
@@ -23,9 +24,10 @@ class GitHelper:
                 stderr=subprocess.PIPE,
                 text=True
             )
+            #print (f"done running git command{command}")
             return result.stdout
         except subprocess.CalledProcessError as e:
-            print(f"Error running git command: {e.stderr}")
+            #print(f"Error running git command: {e.stderr}")
             return None
 
     @staticmethod
@@ -56,20 +58,22 @@ class GitHelper:
         return GitHelper.run_git_command(repo_path, ["pull"])
 
     @staticmethod
-    def is_current_branch(repo_path, branch_name):
-        """Check if the current branch of the given repository matches the given branch name."""
+    def is_correct_version(repo_path, version):
+        current_commit = GitHelper.run_git_command(repo_path, ["rev-parse", "HEAD"]).strip()
+        is_at_commit = current_commit.startswith(version)
+
         current_branch = GitHelper.run_git_command(repo_path, ["rev-parse", "--abbrev-ref", "HEAD"]).strip()
-        return current_branch == branch_name
+        is_at_branch = current_branch == version
 
-# Example usage
-if __name__ == "__main__":
-    repo_path = "/path/to/your/repo"
-    repo_url = "https://github.com/user/repo.git"
+        current_tag = GitHelper.run_git_command(repo_path, ["describe", "--tags", "--exact-match"])
+        if current_tag:
+            current_tag = current_tag.strip()
+            is_at_tag = current_tag == version
+        else:
+            is_at_tag = False
 
-    if GitHelper.is_repo_path_valid(repo_path):
-        # Perform Git operations on existing repository
-        GitHelper.fetch(repo_path)
-        # ... other Git operations
-    else:
-        # Clone the repository as the path doesn't exist or isn't a Git repo
-        GitHelper.clone(repo_path, repo_url)
+        is_valid = is_at_commit or is_at_branch or is_at_tag
+        print(f"Version={version} CurrentBranch={current_branch}"
+              f" CurrentCommit={current_commit} CurrentTag={current_tag}"
+              f" IsCorrectVersion={is_valid}")
+        return is_valid
