@@ -1,7 +1,8 @@
 import dearpygui.dearpygui as dpg
 from enum import Enum
 from pathlib import Path
-import argparse
+import configparser
+from tkinter import filedialog, Tk
 import json
 import os
 
@@ -11,6 +12,13 @@ from git_helper import GitHelper
 SLN_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
 PACKAGE_STORE_PATH = SLN_DIR / 'premake' / 'package_store.json'
 DEPENDENCIES_PATH = SLN_DIR / 'dependencies.json'
+
+# UI defaults
+NO_OUTPUT_DIR_SELECTED_TEXT = "Choose sln output dir..."
+
+class Mode(Enum):
+    CREATE_NEW = 1,
+    UPDATE = 2
 
 
 class SolutionNameMissingException(Exception):
@@ -29,12 +37,14 @@ class PackageSelectorGUI:
         self.output_dir_label_id = None
         self.dependencies = {}
         self.package_store = {}
+        self.mode = Mode.CREATE_NEW
+        self.output_dir = ""
         self.create_gui()
 
 
     def load_package_store(self):
         try:
-            with open(PACKAGE_STORE_PATH) as file:
+            with open(PACKAGE_STORE_PATH, encoding='utf-8') as file:
                 self.package_store = json.load(file)['package_store']
         except FileNotFoundError:
             self.package_store = {}
@@ -42,26 +52,48 @@ class PackageSelectorGUI:
 
     def load_dependencies(self):
         try:
-            with open(DEPENDENCIES_PATH) as file:
+            with open(DEPENDENCIES_PATH, encoding='utf-8') as file:
                 self.dependencies = json.load(file)
         except FileNotFoundError:
             self.dependencies = {}
 
 
-    def load_settings(self):
-        print("load settings")
+    def initialize(self):
+        config_parser = configparser.ConfigParser()
+        config_parser.read(SLN_DIR/'settings.ini')
+
+        mode_str = config_parser.get('DEFAULT', 'mode', fallback="GENERATE")
+        self.mode = Mode[mode_str]
+        # If mode is UPDATE we don't care about output_dir because we only operate in current dir.
+        if self.mode == Mode.CREATE_NEW:
+            self.output_dir = config_parser.get('DEFAULT', 'output_dir',
+                                                fallback= NO_OUTPUT_DIR_SELECTED_TEXT)
+
+        self.load_package_store()
+        self.load_dependencies()
 
 
     def create_gui(self):
-        self.load_package_store()
-        self.load_dependencies()
+        self.initialize()
         self.window_id = dpg.add_window(label="Package Selector", no_scrollbar=True,
                                         menubar=False, no_resize=True, no_move=True)
         with dpg.window(id=self.window_id):
-            # Edit box
-            self.solution_name_id = dpg.add_input_text(hint="Enter Solution Name")
-            dpg.set_item_callback(self.solution_name_id, self.on_solution_text_changed)
 
+            # Output dir select button
+            if self.mode == Mode.CREATE_NEW:
+                with dpg.group(horizontal=True):
+                    dpg.add_button(label="Browse", callback=self.on_choose_output_dir)
+
+                    check_1 = self.output_dir.strip(' "') != ""
+                    # Current output dir label
+                    self.output_dir_label_id = dpg.add_text(
+                        self.output_dir if self.output_dir.strip(' "') != "" else NO_OUTPUT_DIR_SELECTED_TEXT)
+
+                # Solution name Edit box
+                self.solution_name_id = dpg.add_input_text(hint="Enter Solution Name")
+                dpg.set_item_callback(self.solution_name_id, self.on_solution_text_changed)
+
+            dpg.add_text("Packages")
             # Package Items
             for package_name, package_info in self.package_store.items():
                 with dpg.group(horizontal=True):
@@ -81,11 +113,34 @@ class PackageSelectorGUI:
                                                 callback=self.on_dropdown_changed)
                     self.dropdowns[dropdown_id] = package_name
 
-            # Generate Button
+            # Generate Button or Update Button
+            self.create_execute_button()
+
+
+    def create_execute_button(self):
+        if self.mode == Mode.CREATE_NEW:
             self.generate_button_id = dpg.add_button(label="Generate", callback=self.on_generate_clicked)
             dpg.disable_item(self.generate_button_id)
 
             dpg.set_item_user_data(self.solution_name_id, self.generate_button_id)
+
+        elif self.mode == Mode.UPDATE:
+            dpg.add_button(label="Update", callback=self.on_update_clicked)
+
+
+    def on_choose_output_dir(self, sender, app_data, user_data):
+        root = Tk()
+        directory = filedialog.askdirectory()
+        root.destroy()
+        # update directory if we picked one
+        if directory:
+            self.output_dir = directory
+            config_parser = configparser.ConfigParser()
+            config_parser.read(SLN_DIR / 'settings.ini')
+            config_parser.set('DEFAULT', 'output_dir', directory)
+            with open(SLN_DIR / 'settings.ini', 'w', encoding='utf-8') as config_file:
+                config_parser.write(config_file)
+            dpg.set_value(self.output_dir_label_id, directory)
 
 
     def on_dropdown_changed(self, sender, app_data, user_data):
@@ -104,13 +159,20 @@ class PackageSelectorGUI:
         self.update_dependencies()
 
 
+    def on_update_clicked(self, sender, app_data, user_data):
+        """
+        Basically we just make sure the package repos exist and rerun premake here.
+        """
+        print("running premake")
+
+
     def on_generate_clicked(self, sender, app_data, user_data):
         """
         TODO:
         So, what's gonna happen here is generate button is only available
         when the script is run in "Generate" mode. This is basically only
         when you're running from the repository for the simple-package-manager.
-        This mode is specified by a .ini file.\
+        This mode is specified by a .ini file.
 
         Once the user presses "generate", the ini file will get created in the destination
         and the mode will be "Update". In this mode, an Update button will be there in place
@@ -124,6 +186,7 @@ class PackageSelectorGUI:
         
         except SolutionNameMissingException as e:
             print(e)
+        print (self.solution_name)
 
 
     def on_solution_text_changed(self, sender, app_data, user_data):
@@ -145,8 +208,9 @@ class PackageSelectorGUI:
                 updated_dependencies[package_name] = dropdown_value
 
         # Update the dependencies file
-        with open(SLN_DIR / 'dependencies.json', 'w') as file:
+        with open(SLN_DIR / 'dependencies.json', 'w', encoding='utf-8') as file:
             json.dump(updated_dependencies, file, indent=4)
+
 
 def main():
     dpg.create_context()
