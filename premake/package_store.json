@@ -1,21 +1,18 @@
 {
     "package_store": {
         "spdlog": {
-            "premake_path": "premake/packages/spdlog/",
-            "include_path": "spdlog/include",
+            "include_dir": "spdlog/include",
             "git_url": "https://github.com/gabime/spdlog.git",
             "versions": [
                 "git|ac55e604",
                 "v1.12.0"
             ]
         },
-        "spdlog1": {
-            "premake_path": "premake/packages/spdlog/",
-            "include_path": "spdlog/include",
-            "git_url": "https://github.com/gabime/spdlog.git",
+        "nlohmann": {
+            "include_dir": "nlohmann/single_include/",
+            "git_url": "https://github.com/nlohmann/json.git",
             "versions": [
-                "git|ac55e604",
-                "v1.12.0"
+                "v3.11.3"
             ]
         }
     }

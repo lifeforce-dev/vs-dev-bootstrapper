@@ -21,10 +21,14 @@ workspace (_OPTIONS["sln_name"])
 
     configurations { "Debug", "Release" }
 
+    print("Populating contrib...")
     group "contrib"
     for name, pkg in pairs(package_info.packages) do
         local premake_script_path = path.join(config.sln_dir, "premake/supported-packages",
-                                              name, pkg.version, "premake5.lua")
+                                              name, pkg.version, "premake.lua")
+        print("Attempting to load premake script"..
+              " name=" .. name .. 
+              " path=" .. premake_script_path)
         include(premake_script_path)
     end
     group ""
@@ -63,9 +67,9 @@ workspace (_OPTIONS["sln_name"])
 
             -- Handle includes for packages.
             for pkg_name, pkg_details in pairs(package_info.packages) do
-                local include_path = path.join(config.package_cache, pkg_name, pkg_details.version,
-                                               pkg_details.include_path)
-                table.insert(project_includedirs, path.join(config.package_cache, include_path))
+                local include_dir = path.join(config.package_cache, pkg_name, pkg_details.version,
+                                               pkg_details.include_dir)
+                table.insert(project_includedirs, path.join(config.package_cache, include_dir))
             end
 
             includedirs(project_includedirs)
@@ -73,16 +77,19 @@ workspace (_OPTIONS["sln_name"])
             -- Handle linking packages
             local project_links = {}
             for name, pkg in pairs(package_info.packages) do
-                table.insert(project_links, pkg.link_name)
+                table.insert(project_links, name)
             end
 
             links(project_links)
 
+            staticruntime "on"
             filter "configurations:Debug"
                 defines { "DEBUG" }
                 symbols "On"
+                runtime "Debug"
 
             filter "configurations:Release"
                 defines { "NDEBUG" }
                 optimize "On"
+                runtime "Release"
     end

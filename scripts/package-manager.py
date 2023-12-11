@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from tkinter import filedialog, Tk
+import re
 import shutil
 import subprocess
 
@@ -220,6 +221,44 @@ class PackageSelectorGUI:
 
         self.update_dependencies()
 
+    def on_generate_clicked(self, sender, app_data, user_data):
+        dpg.set_value(self.status_text_id, "")
+        self.set_ui_enabled(False)
+        self.solution_name = dpg.get_value(self.solution_name_input_id)
+        try:
+            if not self.solution_name.strip():
+                raise SolutionNameMissingException
+        except SolutionNameMissingException as e:
+            print(e)
+            return
+
+        self.fetch_packages(self.get_checked_packages())
+        self.generate_package_info_lua()
+        dpg.set_value(self.status_text_id,f"{STATUS_TEXT_PREFIX} Creating folder structure...")
+
+        self.solution_dir = Path(self.output_dir) / self.solution_name
+        self.build_sln_dir(self.solution_dir)
+        self.execute_premake(self.solution_dir)
+        self.generate_package_manager_batch_script(self.solution_dir)
+
+
+    def on_update_clicked(self, sender, app_data, user_data):
+        self.fetch_packages(self.get_checked_packages())
+        self.execute_premake(SLN_DIR)
+
+
+    def on_solution_text_changed(self, sender, app_data, user_data):
+        self.solution_name = dpg.get_value(sender)
+        self.update_generate_button_is_enabled()
+        dpg.set_value(self.status_text_id, "")
+
+
+    def update_generate_button_is_enabled(self):
+        if self.solution_name.strip() and self.output_dir.strip():
+            dpg.enable_item(self.generate_button_id)
+        else:
+            dpg.disable_item(self.generate_button_id)
+
 
     def set_ui_enabled(self, enabled):
 
@@ -300,6 +339,37 @@ class PackageSelectorGUI:
         (solution_dir / 'Source').mkdir()
 
 
+    def generate_package_info_lua(self):
+        # Define the path for package_info.lua
+        package_info_lua_path = SLN_DIR / 'premake' / 'generated' / 'package_info.lua'
+        package_info_lua_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Building the dictionary for package info
+        packages_dict = {}
+        checked_packages = self.get_checked_packages()
+        for package_name, version in checked_packages:
+            # Retrieve the package data from package_store using the package name
+            package_data = self.package_store.get(package_name)
+
+            if package_data:
+                include_dir = package_data["include_dir"]
+
+                # Add to packages_dict
+                packages_dict[package_name] = {
+                    "version": version,
+                    "include_dir": include_dir
+                }
+
+        # Convert the dictionary to a JSON string and format it for Lua
+        package_info_json = json.dumps({"packages": packages_dict}, indent=4)
+        package_info_lua = re.sub(r'\"([^\"]+)\":', r'\1 =', package_info_json)
+        package_info_content = "return {" + package_info_lua[1:-1] + "}\n"
+
+        # Write the content to package_info.lua
+        with open(package_info_lua_path, 'w', encoding='utf-8') as file:
+            file.write(package_info_content)
+
+
     def execute_premake(self, solution_dir):
         os.chdir(solution_dir)
         print(f"Project generated at {solution_dir}")
@@ -324,7 +394,7 @@ class PackageSelectorGUI:
         else:
             print(f"Premake executable not found at {premake_executable}.")
             dpg.set_value(self.status_text_id, f"{STATUS_TEXT_ERROR_PREFIX} Premake executable not found.")
-        dpg.set_value(self.status_text_id,f"{STATUS_TEXT_PREFIX} Done.")
+        dpg.set_value(self.status_text_id, "Done.")
         self.set_ui_enabled(True)
         os.chdir(SLN_DIR)
 
@@ -358,42 +428,6 @@ class PackageSelectorGUI:
         ]
         return checked_packages
 
-    def on_generate_clicked(self, sender, app_data, user_data):
-        self.set_ui_enabled(False)
-        self.solution_name = dpg.get_value(self.solution_name_input_id)
-        try:
-            if not self.solution_name.strip():
-                raise SolutionNameMissingException
-        except SolutionNameMissingException as e:
-            print(e)
-            return
-
-        self.fetch_packages(self.get_checked_packages())
-
-        dpg.set_value(self.status_text_id,f"{STATUS_TEXT_PREFIX} Creating folder structure...")
-
-        self.solution_dir = Path(self.output_dir) / self.solution_name
-        self.build_sln_dir(self.solution_dir)
-        self.execute_premake(self.solution_dir)
-        self.generate_package_manager_batch_script(self.solution_dir)
-
-
-    def on_update_clicked(self, sender, app_data, user_data):
-        self.fetch_packages(self.get_checked_packages())
-        self.execute_premake(SLN_DIR)
-
-
-    def on_solution_text_changed(self, sender, app_data, user_data):
-        self.solution_name = dpg.get_value(sender)
-        self.update_generate_button_is_enabled()
-
-
-    def update_generate_button_is_enabled(self):
-        print(f"name: {self.solution_name} output_dir: {self.output_dir}")
-        if self.solution_name.strip() and self.output_dir.strip():
-            dpg.enable_item(self.generate_button_id)
-        else:
-            dpg.disable_item(self.generate_button_id)
 
     def update_dependencies(self):
         # This is the simplest and least error-prone way to update our depdencies.
@@ -408,6 +442,8 @@ class PackageSelectorGUI:
         # Update the dependencies file
         with open(SLN_DIR / 'dependencies.json', 'w', encoding='utf-8') as file:
             json.dump(updated_dependencies, file, indent=4)
+
+        dpg.set_value(self.status_text_id, "")
 
 
 def set_disabled_theme(component, theme):
