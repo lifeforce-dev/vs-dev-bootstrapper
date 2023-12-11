@@ -202,6 +202,7 @@ class PackageSelectorGUI:
             with open(SLN_DIR / 'settings.ini', 'w', encoding='utf-8') as config_file:
                 config_parser.write(config_file)
             dpg.set_value(self.output_dir_label_id, directory)
+            self.update_generate_button_is_enabled()
 
 
     def on_dropdown_changed(self, sender, app_data, user_data):
@@ -371,10 +372,10 @@ class PackageSelectorGUI:
 
         dpg.set_value(self.status_text_id,f"{STATUS_TEXT_PREFIX} Creating folder structure...")
 
-        solution_dir = Path(self.output_dir) / self.solution_name
-        self.build_sln_dir(solution_dir)
-        self.execute_premake(solution_dir)
-        self.generate_package_manager_batch_script(solution_dir)
+        self.solution_dir = Path(self.output_dir) / self.solution_name
+        self.build_sln_dir(self.solution_dir)
+        self.execute_premake(self.solution_dir)
+        self.generate_package_manager_batch_script(self.solution_dir)
 
 
     def on_update_clicked(self, sender, app_data, user_data):
@@ -384,11 +385,15 @@ class PackageSelectorGUI:
 
     def on_solution_text_changed(self, sender, app_data, user_data):
         self.solution_name = dpg.get_value(sender)
-        if self.solution_name.strip():
-            dpg.enable_item(user_data)
-        else:
-            dpg.disable_item(user_data)
+        self.update_generate_button_is_enabled()
 
+
+    def update_generate_button_is_enabled(self):
+        print(f"name: {self.solution_name} output_dir: {self.output_dir}")
+        if self.solution_name.strip() and self.output_dir.strip():
+            dpg.enable_item(self.generate_button_id)
+        else:
+            dpg.disable_item(self.generate_button_id)
 
     def update_dependencies(self):
         # This is the simplest and least error-prone way to update our depdencies.
