@@ -20,14 +20,16 @@ project (project_key)
     local spdlog_version = package_info.packages[project_key].version
     local spdlog_json_package_dir = path.join(config.package_cache, project_key, spdlog_version)
 
-    local include_dir = package_info.packages[project_key].include_dir
-    print(path.join(spdlog_json_package_dir, include_dir))
-    print(path.join(spdlog_json_package_dir, project_key, "src"))
+    local include_dir = path.join("spdlog", "include")
+    config.project_includes[project_key] = include_dir
+    local source_dir = path.join("spdlog", "src")
+    print("SPDLOG include dir:" .. path.join(spdlog_json_package_dir, include_dir))
+    print("SPDLOG source dir" .. path.join(spdlog_json_package_dir, source_dir))
 
     files {
 
-        path.join(spdlog_json_package_dir, project_key, "include", "**.h"),
-        path.join(spdlog_json_package_dir, project_key, "src", "**.cpp")
+        path.join(spdlog_json_package_dir, include_dir, "**.h"),
+        path.join(spdlog_json_package_dir, source_dir, "**.cpp")
     }
     
     includedirs { path.join(spdlog_json_package_dir, include_dir) }

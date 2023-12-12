@@ -1,7 +1,6 @@
 {
     "package_store": {
         "spdlog": {
-            "include_dir": "spdlog/include",
             "git_url": "https://github.com/gabime/spdlog.git",
             "versions": [
                 "git|ac55e604",
@@ -9,10 +8,15 @@
             ]
         },
         "nlohmann": {
-            "include_dir": "nlohmann/single_include/",
             "git_url": "https://github.com/nlohmann/json.git",
             "versions": [
                 "v3.11.3"
+            ]
+        },
+        "asio": {
+            "git_url": "https://github.com/chriskohlhoff/asio.git",
+            "versions": [
+                "asio-1-29-0"
             ]
         }
     }

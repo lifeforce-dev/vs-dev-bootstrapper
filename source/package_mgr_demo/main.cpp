@@ -1,8 +1,10 @@
 #include <nlohmann/json.hpp>
+#include <asio.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <fstream>
+#include <chrono>
 #include <iostream>
 
 // This file is basically just a build test to make sure everything is still hooked up properly.
@@ -48,6 +50,20 @@ int main() {
 	else {
 		logger.error("Could not open JSON file for reading.");
 	}
+
+	// ASIO Example: Setting up a timer
+	asio::io_context io_context;
+
+	// Setting a timer for 5 seconds
+	asio::steady_timer timer(io_context, std::chrono::seconds(5));
+	timer.async_wait([&logger](const std::error_code& /*e*/) {
+		logger.info("Timer expired!");
+		});
+
+	logger.info("Starting ASIO timer for 5 seconds...");
+
+	// Run the ASIO context to work with the timer
+	io_context.run();
 
 	return 0;
 }

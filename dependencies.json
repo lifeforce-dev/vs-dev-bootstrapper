@@ -1,4 +1,5 @@
 {
     "spdlog": "v1.12.0",
-    "nlohmann": "v3.11.3"
+    "nlohmann": "v3.11.3",
+    "asio": "asio-1-29-0"
 }

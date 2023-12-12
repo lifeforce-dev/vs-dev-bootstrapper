@@ -352,12 +352,9 @@ class PackageSelectorGUI:
             package_data = self.package_store.get(package_name)
 
             if package_data:
-                include_dir = package_data["include_dir"]
-
                 # Add to packages_dict
                 packages_dict[package_name] = {
                     "version": version,
-                    "include_dir": include_dir
                 }
 
         # Convert the dictionary to a JSON string and format it for Lua

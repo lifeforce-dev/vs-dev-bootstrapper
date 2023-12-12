@@ -16,6 +16,8 @@ if not package_cache then
     os.exit(1)
 end
 
+local project_includes = {}
+
 -- Auto-generated premake related files will be in here.
 local generated_dir = path.join(sln_dir, "premake", "generated")
 
@@ -36,5 +38,6 @@ return {
     base_build_dir = base_build_dir,
     bin_dir = bin_dir,
     lib_dir = lib_dir,
-    obj_dir = obj_dir
+    obj_dir = obj_dir,
+    project_includes = project_includes
 }

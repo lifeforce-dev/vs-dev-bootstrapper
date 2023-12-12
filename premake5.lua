@@ -91,8 +91,11 @@ workspace (_OPTIONS["sln_name"])
 
             -- Handle includes for packages.
             for pkg_name, pkg_details in pairs(package_info.packages) do
+                print("pkg_name" .. pkg_name)
+                local pkg_include_dir = config.project_includes[pkg_name]
+                print("PACKAGE_INCLUDE_DIR" .. pkg_include_dir)
                 local include_dir = path.join(config.package_cache, pkg_name, pkg_details.version,
-                                               pkg_details.include_dir)
+                                              pkg_include_dir)
                 table.insert(project_includedirs, path.join(config.package_cache, include_dir))
             end
 
