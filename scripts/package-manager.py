@@ -254,7 +254,7 @@ class PackageSelectorGUI:
 
 
     def update_generate_button_is_enabled(self):
-        if self.solution_name.strip() and self.output_dir.strip():
+        if self.solution_name.strip() and os.path.isdir(self.output_dir):
             dpg.enable_item(self.generate_button_id)
         else:
             dpg.disable_item(self.generate_button_id)
