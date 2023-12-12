@@ -14,10 +14,48 @@ end
 
 print("working dir" .. os.getcwd())
 
+-- Try and pick an intelligent startup project if one exists.
+local function determine_startup_project(projects, default_name)
+    -- Check if a project with the same name as the workspace exists
+    for _, project_name in ipairs(projects) do
+        if project_name == default_name then
+            return project_name
+        end
+    end
+    
+    -- If the workspace-named project was not found,
+    -- return the first project in the list, if available
+    return #projects > 0 and projects[1] or nil
+end
+
+
+-- Returns a list of dirs to be treated as .vcxproj dirs.
+local function find_projects(src_path)
+    local projects = {}
+    local p = io.popen('dir "' .. src_path .. '" /b /ad')
+    for directory in p:lines() do
+        table.insert(projects, directory)
+    end
+    p:close()
+    return projects
+end
+
+-- Top level directories in this dir will be treated as the root for a .vcxproj.
+local source_dir = path.join(config.sln_dir, "source")
+
+-- Retrieve the list of projects
+local projects = find_projects(source_dir)
+
+-- Determine the startup project
+local startup_project = determine_startup_project(projects, _OPTIONS["sln_name"])
+
 workspace (_OPTIONS["sln_name"])
 
     architecture "x64"
-    startproject "package_mgr_demo"
+    if startup_project then
+        startproject (startup_project)
+    end
+
 
     configurations { "Debug", "Release" }
 
@@ -32,22 +70,8 @@ workspace (_OPTIONS["sln_name"])
         include(premake_script_path)
     end
     group ""
-    -- Top level directories in this dir will be treated as the root for a .vcxproj.
-    local source_dir = path.join(config.sln_dir, "source")
-
-    -- Returns a list of dirs to be treated as .vcxproj dirs.
-    local function find_projects(src_path)
-        local projects = {}
-        local p = io.popen('dir "' .. src_path .. '" /b /ad')
-        for directory in p:lines() do
-            table.insert(projects, directory)
-        end
-        p:close()
-        return projects
-    end
 
     -- The .vcxproj filters will be setup identical to the folder structure of its root dir.
-    local projects = find_projects(source_dir)
     for _, project_name in ipairs(projects) do
         project (project_name)
             location (path.join(sln_dir, "build", "projects", "packages"))
