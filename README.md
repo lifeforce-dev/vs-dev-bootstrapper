@@ -1,12 +1,4 @@
 # simple-package-manager
-I just want to be able to fetch libraries I commonly use and generate VS .sln/project files with everything hooked up. Premake doesn't do most of this without a significant amount of custom work anyway.
-
-EDIT: I would just like to apologize to premake, this is actually a hard problem and I'll probably just use premake for making the sln/project files.
-
-Motivation:
-This is not even attempting to be a "general package manager". I find myself creating new projects frequently, usually to solve leet-code/hacker-rank problems, simple projects, or other toy problems. For these, I develop exclusively for windows, and in the end, this was built for my needs.
-
-But if you too only develop on windows and use some of these packages then this should work for you too!
 
 Usage:
 
