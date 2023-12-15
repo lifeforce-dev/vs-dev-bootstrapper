@@ -20,16 +20,16 @@ project (project_key)
     local include_dir = path.join("asio", "asio", "include")
     config.project_includes[project_key] = include_dir
 
-    local source_dir = path.join("asio", "asio", "src")
+    local asio_include_dir = path.join(asio_json_package_dir, include_dir)
 
-    local asio_include_dir = path.join(asio_json_package_dir, "asio", "asio", "include")
-    local asio_source_dir = path.join(asio_json_package_dir, "asio", "asio", "src")
+    local source_dir = path.join("asio", "asio", "src")
+    local asio_source_dir = path.join(asio_json_package_dir, source_dir)
     
     print("ASIO include dir: " .. asio_include_dir)
     print("ASIO source dir: " .. asio_source_dir)
     
     files {
-        path.join(asio_include_dir, "**.hpp"),
+        path.join(asio_include_dir, "**.hpp")
     }
         
     includedirs {
