@@ -108,8 +108,19 @@ class PackageSelectorGUI:
         except FileNotFoundError:
             self.dependencies = {}
 
+    def create_default_settings(self):
+        config = configparser.ConfigParser()
+        config['DEFAULT'] = {
+            'mode': 'CREATE_NEW'
+        }
+        with open(SLN_DIR / 'settings.ini', 'w') as configfile:
+            config.write(configfile)
+
 
     def initialize(self):
+        if not os.path.exists(SLN_DIR / 'settings.ini'):
+            self.create_default_settings()
+
         config_parser = configparser.ConfigParser()
         config_parser.read(SLN_DIR/'settings.ini')
 
@@ -348,13 +359,14 @@ class PackageSelectorGUI:
         packages_dict = {}
         checked_packages = self.get_checked_packages()
         for package_name, version in checked_packages:
+            clean_version = version.replace("git|", "")
             # Retrieve the package data from package_store using the package name
             package_data = self.package_store.get(package_name)
 
             if package_data:
                 # Add to packages_dict
                 packages_dict[package_name] = {
-                    "version": version,
+                    "version": clean_version,
                 }
 
         # Convert the dictionary to a JSON string and format it for Lua
