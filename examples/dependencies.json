@@ -1,5 +1,6 @@
 {
     "spdlog": "v1.12.0",
     "nlohmann": "v3.11.3",
-    "asio": "asio-1-29-0"
+    "asio": "asio-1-29-0",
+    "glm": "0.9.9.8"
 }

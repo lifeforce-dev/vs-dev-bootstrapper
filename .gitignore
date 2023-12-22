@@ -1,7 +1,9 @@
 # user folders
 build/
 *.sln
-settings.ini
+/dependencies.json
+premake/generated/package_info.lua
+/settings.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

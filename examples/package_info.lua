@@ -8,6 +8,9 @@ return {
         },
         asio = {
             version = "asio-1-29-0"
+        },
+        glm = {
+            version = "0.9.9.8"
         }
     }
 }
