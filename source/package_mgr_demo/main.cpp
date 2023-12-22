@@ -3,9 +3,13 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <chrono>
 #include <iostream>
+
 
 // This file is basically just a build test to make sure everything is still hooked up properly.
 
@@ -19,6 +23,14 @@ int main() {
 
 	// Log message to console and file
 	logger.info("Starting application");
+
+	glm::vec3 vec(1.0f, 0.0f, 0.0f); // A simple vector pointing along the X axis
+	glm::mat4 trans = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate 90 degrees around the Z axis
+	glm::vec3 transformedVec = trans * glm::vec4(vec, 1.0f);
+
+	// Log the transformed vector
+	logger.info("Original vector: [{}, {}, {}]", vec.x, vec.y, vec.z);
+	logger.info("Transformed vector: [{}, {}, {}]", transformedVec.x, transformedVec.y, transformedVec.z);
 
 	// Create and write JSON to file
 	nlohmann::json jsonExample;
