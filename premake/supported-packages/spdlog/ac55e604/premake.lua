@@ -1,7 +1,6 @@
 local config = require "common_paths"
 local package_info = require "package_info"
 
-local sln_dir = _OPTIONS["sln_dir"]
 local project_key = "spdlog"
 project (project_key)
     kind "StaticLib"
@@ -18,16 +17,25 @@ project (project_key)
     objdir (path.join(config.obj_dir, project_key))
 
     local spdlog_version = package_info.packages[project_key].version
-    print(path.join(config.package_cache, project_key, spdlog_version, project_key, "include"))
-    print(path.join(config.package_cache, project_key, spdlog_version, project_key, "src"))
+    local spdlog_package_dir = path.join(config.package_cache, project_key, spdlog_version, project_key)
+
+    local include_dir = path.join(spdlog_package_dir, "include")
+    local src_dir = path.join(spdlog_package_dir, "src")
+    
+    -- Set the include directory in config.project_includes for use in other scripts
+    config.project_includes[project_key] = include_dir
+
+    print("spdlog include dir: " .. include_dir)
+    print("spdlog source dir: " .. src_dir)
 
     files {
-
-        path.join(config.package_cache, project_key, spdlog_version, project_key, "include", "**.h"),
-        path.join(config.package_cache, project_key, spdlog_version, project_key, "src", "**.cpp")
+        path.join(include_dir, "**.h"),
+        path.join(src_dir, "**.cpp")
     }
     
-    includedirs { path.join(config.package_cache, project_key, spdlog_version, project_key, "include") }
+    includedirs {
+        include_dir
+    }
 
     filter "system:windows"
         systemversion "latest"
