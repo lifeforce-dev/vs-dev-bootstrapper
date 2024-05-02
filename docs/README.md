@@ -1,4 +1,4 @@
-# simple-package-manager
+# vs-dev-bootstrapper
 
 ## What this project is NOT intended for
 - Use as a general package manager. If all you want is a **robust fully featured package manager for premier packages**, I strongly suggest using [vcpkg](https://vcpkg.io/en/)
