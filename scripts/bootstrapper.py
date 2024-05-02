@@ -411,8 +411,8 @@ class PackageSelectorGUI:
     def generate_package_manager_batch_script(self, solution_dir):
         os.chdir(solution_dir)
         try:
-            batch_file_path = solution_dir / 'run_package_manager.bat'
-            python_script_path = solution_dir / 'scripts' / 'package-manager.py'
+            batch_file_path = solution_dir / 'run_bootstrapper.bat'
+            python_script_path = solution_dir / 'scripts' / 'bootstrapper.py'
             with open(batch_file_path, 'w') as batch_file:
                 batch_file.write(f'@echo off\n')
                 batch_file.write(f'python "{python_script_path}"\n')
