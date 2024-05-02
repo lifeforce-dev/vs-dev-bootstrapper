@@ -23,7 +23,7 @@
 - Make sure you have Python 3.11+ installed
 
 ## Creating Your Solution Dir
-Run `package-manager.py` which will bring up the UI
+Run `bootstrapper.py` which will bring up the UI
 
 ![UI](https://i.imgur.com/YoAYH7F.png)
 
