@@ -21,6 +21,8 @@
 ## Setup
 - Create an environment variable called `PACKAGE_CACHE_PATH` and set its value to the directory that you want dependencies downloaded to
 - Make sure you have Python 3.11+ installed
+- `pip install dearpygui`
+- Make sure git is in your `Path` environment variable (`C:/Program Files/Git/cmd` is a common location)
 
 ## Creating Your Solution Dir
 Run `bootstrapper.py` which will bring up the UI
