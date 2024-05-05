@@ -49,8 +49,14 @@ Run `bootstrapper.py` which will bring up the UI
 -- Directories inside will be added as vpaths in your project file so that your VS projects mirror your folder structure.
 -- All .cpp/.h files are added to its respective project
 - All dependencies selected by the package manager will be hooked up for use in all projects
+![UI](https://i.imgur.com/dYNUEB0.gif)
 
 ## Creating your own local static library
 - In the `<your_sln_name>/Source` dir create a folder called `_static`
 - The rules inside this folder are the same as the ones in `Source`. Top level dirs become projects, etc
 - It will be treated as a dependency in `contrib` and will be hooked up to all projects so they are ready to use it
+
+## Building
+- To build the .sln you just finished generating, simply open in Visual Studio and hit build
+- output libs and binaries are all organized in your build folder in their respective configurations
+![UI](https://i.imgur.com/3zbZMDG.gif)
