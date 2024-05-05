@@ -2,7 +2,7 @@
 
 ## What this project is NOT intended for
 - Use as a general package manager. If all you want is a **robust fully featured package manager for premier packages**, I strongly suggest using [vcpkg](https://vcpkg.io/en/)
-- Cross platform package management. This is windows only.
+- Cross platform package management. This is windows only, MSVC only
 - Detailed customization, such as creating a vcxproj and controlling exactly which of the many dependencies you want it to know about, etc.
 - Production code for large projects or "real" code bases that require a more advance and flexible build system
 
