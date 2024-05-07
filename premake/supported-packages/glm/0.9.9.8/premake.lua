@@ -18,10 +18,9 @@ project (project_key)
     local glm_json_package_dir = path.join(config.package_cache, project_key, glm_version)
 
     local include_dir = path.join("glm")
-    config.project_includes[project_key] = include_dir
-
     local glm_include_dir = path.join(glm_json_package_dir, include_dir)
-    
+    config.project_includes[project_key] = glm_include_dir
+
     print("glm include dir: " .. glm_include_dir)
     
     files {

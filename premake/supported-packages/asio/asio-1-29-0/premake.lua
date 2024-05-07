@@ -18,9 +18,9 @@ project (project_key)
     local asio_json_package_dir = path.join(config.package_cache, project_key, asio_version)
 
     local include_dir = path.join("asio", "asio", "include")
-    config.project_includes[project_key] = include_dir
-
     local asio_include_dir = path.join(asio_json_package_dir, include_dir)
+    config.project_includes[project_key] = asio_include_dir
+
 
     local source_dir = path.join("asio", "asio", "src")
     local asio_source_dir = path.join(asio_json_package_dir, source_dir)
