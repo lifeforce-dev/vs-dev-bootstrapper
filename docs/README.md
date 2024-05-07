@@ -60,3 +60,15 @@ Run `bootstrapper.py` which will bring up the UI
 - To build the .sln you just finished generating, simply open in Visual Studio and hit build
 - output libs and binaries are all organized in your build folder in their respective configurations
 ![UI](https://i.imgur.com/3zbZMDG.gif)
+
+## Including contrib packages in your projects
+
+- From any project you should be able to access selected packages by including them like so:
+
+```
+#include <glm/glm.hpp>
+#include <nlohmann/json.hpp>
+#include <asio.hpp>
+#include <spdlog/spdlog.h>
+#include <catch2/catch.hpp>
+```
