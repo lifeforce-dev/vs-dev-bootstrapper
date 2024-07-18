@@ -5,7 +5,7 @@ local project_key = "glm"
 project (project_key)
     kind "Utility"
     language "C++"
-    cppdialect "C++17"
+    cppdialect "C++20"
     staticruntime "On"
 
     location (path.join(config.sln_dir, "build", "projects", "packages"))

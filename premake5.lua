@@ -32,7 +32,7 @@ local static_lib_dirs = os.matchdirs(path.join(static_dir, "*")) -- Get all dire
 workspace (_OPTIONS["sln_name"])
 architecture "x64"
 configurations { "Debug", "Release" }
-cppdialect "C++17"
+cppdialect "C++20"
 
 group "contrib"
 for name, pkg in pairs(package_info.packages) do

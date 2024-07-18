@@ -7,7 +7,7 @@ local project_key = "nlohmann"
 project (project_key)
     kind "Utility"
     language "C++"
-    cppdialect "C++17"
+    cppdialect "C++20"
     staticruntime "On"
 
     defines { "JSON_NOEXCEPTION" }
