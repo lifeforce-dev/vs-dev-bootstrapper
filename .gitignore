@@ -1,8 +1,10 @@
 # user folders
 build/
 *.sln
-/dependencies.json
+
+# Removed in UPDATE mode.
 premake/generated/package_info.lua
+/dependencies.json
 /settings.ini
 
 # Byte-compiled / optimized / DLL files
