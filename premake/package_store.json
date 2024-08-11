@@ -30,6 +30,12 @@
             "versions": [
                 "v2.13.7"
             ]
+        },
+        "observable": {
+            "git_url": "https://github.com/lifeforce-dev/observable.git",
+            "versions": [
+                "v1.0.0"
+            ]
         }
     }
 }
