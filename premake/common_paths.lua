@@ -21,7 +21,7 @@ local project_includes = {}
 -- Auto-generated premake related files will be in here.
 local generated_dir = path.join(sln_dir, "premake", "generated")
 
--- Tell lua where generated lua things will be
+-- Tell lua where generated lua things will be 
 package.path = package.path .. ";".. path.join(generated_dir, "?.lua")
 
 -- This is the root solution dir. All paths will be treated as relative to this dir.

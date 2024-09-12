@@ -19,6 +19,8 @@
 - [Creating Your Own Local Static Library](#creating-your-own-local-static-library)
 
 ## Setup
+- This guide assumes you already have Visual Studio 2022 installed
+-- If you installed VS2022 in a different location than default you will have issues.
 - Create an environment variable called `PACKAGE_CACHE_PATH` and set its value to the directory that you want dependencies downloaded to
 - Make sure you have Python 3.11+ installed
 - `pip install dearpygui`
