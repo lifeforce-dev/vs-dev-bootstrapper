@@ -1,3 +1,4 @@
+-- Commandline option sent to premake.
 newoption {
     trigger = "sln_dir",
     value = "PATH",
@@ -21,7 +22,7 @@ local project_includes = {}
 -- Auto-generated premake related files will be in here.
 local generated_dir = path.join(sln_dir, "premake", "generated")
 
--- Tell lua where generated lua things will be
+-- Tell lua where generated lua things will be 
 package.path = package.path .. ";".. path.join(generated_dir, "?.lua")
 
 -- This is the root solution dir. All paths will be treated as relative to this dir.
@@ -32,6 +33,7 @@ local bin_dir = path.join(base_build_dir, "bin", "%{cfg.buildcfg}")
 local lib_dir = path.join(base_build_dir, "lib", "%{cfg.buildcfg}")
 local obj_dir = path.join(base_build_dir, "obj", "%{cfg.buildcfg}")
 
+-- Referenced from premake files.
 return {
     package_cache = package_cache,
     sln_dir = sln_dir,
