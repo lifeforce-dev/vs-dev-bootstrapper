@@ -7,14 +7,32 @@ import os
 from pathlib import Path
 from tkinter import filedialog, Tk
 import re
+import random
+import string
 import shutil
 import subprocess
+import tempfile
+from module_dependency_helper import ModuleDependencyHelper as MDH, ModuleState
+from dataclasses import dataclass, field
+from collections import defaultdict
 
+#commands
+VS_DEV_COMMAND = r'"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat"'
+
+# First command: Configure the project using the default preset
+CMAKE_CONFIGURE_COMMAND = f'cmake --preset default'
+
+# Second command: Build the project using the release preset
+CMAKE_BUILD_COMMAND_RELEASE = f'cmake --build --preset release'
+
+# Third command: Build the project using the debug preset
+CMAKE_BUILD_COMMAND_DEBUG = f'cmake --build --preset debug'
 
 SLN_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
 PACKAGE_STORE_PATH = SLN_DIR / 'premake' / 'package_store.json'
 DEPENDENCIES_PATH = SLN_DIR / 'dependencies.json'
-
+SUPPORTED_PACKAGES_DIR = SLN_DIR / 'premake' / 'supported-packages'
+CMAKE_PRESETS_FILENAME = 'CMakePresets.json'
 
 # UI defaults
 NO_OUTPUT_DIR_SELECTED_TEXT = "Choose sln output dir..."
@@ -25,6 +43,23 @@ DISABLED_BUTTON_ACTIVE_COLOR = (45, 45, 48)
 
 STATUS_TEXT_PREFIX = "Working..."
 STATUS_TEXT_ERROR_PREFIX = "Error:"
+
+
+# def set_debugging_title():
+#     # Define the characters to be used
+#     valid_chars = string.ascii_letters + string.digits
+    
+#     # Generate a 5-character string
+#     short_string = ''.join(random.choices(valid_chars, k=5))
+    
+#     # Generate a 32-character string
+#     long_string = ''.join(random.choices(valid_chars, k=32))
+    
+#     # Concatenate the two strings with an underscore
+#     folder_name = f"{short_string}_{long_string}"
+
+#     return folder_name
+
 
 class Mode(Enum):
     CREATE_NEW = 1,
@@ -101,9 +136,10 @@ def copy_modified_gitignore(source, destination):
 
 class PackageSelectorGUI:
     def __init__(self):
+        self.module_dependency_count = {}
         self.selected_packages = set()
         self.solution_name = ""
-        self.checkbox_ids = {}
+        self.checkbox_ids: defaultdict[str, int] = defaultdict(int)
         self.dropdown_ids = {}
         self.package_items = {}
         self.window_id = None
@@ -117,6 +153,7 @@ class PackageSelectorGUI:
         self.package_store = {}
         self.mode = Mode.CREATE_NEW
         self.output_dir = ""
+        self.module_dependency_helpers: dict[str, MDH] = defaultdict(MDH)
         self.create_gui()
 
 
@@ -164,6 +201,54 @@ class PackageSelectorGUI:
         self.load_dependencies()
 
 
+    def is_item_enabled(self, item_id):
+        config = dpg.get_item_configuration(item_id)
+        return config.get("enabled", True)
+
+
+    def update_module_dependency_checkboxes(self, parent_package_name):
+        """
+        Updates our module UI to reflect the state returned by the module helper.
+        """
+        if parent_package_name not in self.module_dependency_helpers:
+            return
+
+        module_states = self.module_dependency_helpers[parent_package_name].get_module_states()
+        is_checked = dpg.get_value(self.get_package_checkbox_id_by_name(parent_package_name))
+        # TODO: This file needs a refactor. A package should be an object that knows about its checked state.
+        # this way we only hide/show if it changed.
+        if not is_checked:
+            for module_state in module_states:
+                dpg.hide_item(module_state.module_id)
+            # If modules are hidden there's no reason to update them.
+            return
+
+        if is_checked:
+            # TODO: this should not be necessary after a refactor. We're stuck doing this every time
+            # since we don't know if we were just shown or not.
+            for module_state in module_states:
+                dpg.show_item(module_state.module_id)
+
+        for module in module_states:
+            dpg.set_value(module.module_id, module.is_checked)
+            # TODO: For some reason system is unchecked by the time we get here. And also its enabled.
+            if module.is_enabled:
+                dpg.enable_item(module.module_id)
+            else:
+                dpg.disable_item(module.module_id)
+
+
+    def on_module_checkbox_checked(self, sender, app_data, user_data):
+        parent_package_name, module_name = user_data
+        check_state_str = "Checked" if app_data else "Unchecked"
+        print(f"{check_state_str} {parent_package_name}.{module_name}")
+
+        is_checked = app_data
+        self.module_dependency_helpers[parent_package_name].set_module_checked_state_by_name(module_name, is_checked)
+        self.update_module_dependency_checkboxes(parent_package_name)
+        self.update_dependencies()
+
+
     def create_gui(self):
         self.initialize()
         self.window_id = dpg.add_window(label="Package Selector", no_scrollbar=True,
@@ -184,22 +269,21 @@ class PackageSelectorGUI:
                 dpg.set_item_callback(self.solution_name_input_id, self.on_solution_text_changed)
 
             dpg.add_text("Packages")
+            packages_with_modules = []
             # Package Items
             for package_name, package_info in self.package_store.items():
                 with dpg.group(horizontal=True):
-                    # Checkbox
+                    # Checkbox for the main package
                     checkbox_id = dpg.add_checkbox(label=package_name,
-                                                   callback=self.on_checkbox_checked,
-                                                   user_data=package_name)
-                    self.checkbox_ids[checkbox_id] = package_name
-
+                                                callback=self.on_checkbox_checked,
+                                                user_data=package_name)
+                    self.checkbox_ids[package_name] = checkbox_id
                     is_checked = package_name in self.dependencies
 
                     checkbox_item = PackageCheckBoxItem(package_name, checkbox_id, is_checked=is_checked)
-
                     dpg.set_value(checkbox_id, is_checked)
 
-                    # Dropdown
+                    # Dropdown for the main package
                     dropdown_id = dpg.add_combo(package_info['versions'],
                                                 default_value=self.dependencies.get(package_name, package_info['versions'][0]),
                                                 user_data=package_name,
@@ -211,10 +295,41 @@ class PackageSelectorGUI:
                     group_item = PackageCheckBoxGroupItem(checkbox_item, dropdown_item, package_name)
                     self.package_items[package_name] = group_item
 
+                # If the package has module definitions, create a separate vertical group for them
+                if "module_definitions" in package_info:
+                    packages_with_modules.append(package_name)
+                    module_states: defaultdict[str, list[ModuleState]] = defaultdict(list)
+                    for module in package_info["module_definitions"]:
+                        module_state = ModuleState()
+                        module_state.name = module
+                        modules_key = f"{package_name}_modules"
+                        is_module_checked = modules_key in self.dependencies and module_state.name in self.dependencies[modules_key]
+                        module_state.is_checked = is_module_checked
+
+                        module_definitions =  self.package_store[package_name]["module_definitions"]
+                        if module_state.name not in module_definitions:
+                            raise AssertionError(f"'{module_state.name}' not found in module_definitions.")
+                        module_state.dependencies = module_definitions[module_state.name]
+                        module_states[package_name].append(module_state)
+                    with dpg.group(horizontal=True):
+                        dpg.add_spacer(width=20)
+                        with dpg.group(horizontal=False):
+                            for module_state in module_states[package_name]:
+                                module_id = dpg.add_checkbox(label=f"    {module_state.name}",
+                                                                    callback=self.on_module_checkbox_checked,
+                                                                    user_data=(package_name, module_state.name))
+                                module_state.module_id = module_id
+                                checkbox_item = PackageCheckBoxItem(module_state.name, module_state.module_id,
+                                    is_checked= module_state.is_checked)
+
+            for package_name in packages_with_modules:
+                self.module_dependency_helpers[package_name] = MDH(list(module_states[package_name]))
+                self.update_module_dependency_checkboxes(package_name)
             # Generate Button or Update Button
             self.create_execute_button()
             self.status_text_id = dpg.add_text("", wrap=500)
 
+        #self.update_generate_button_is_enabled()
 
     def create_execute_button(self):
         if self.mode == Mode.CREATE_NEW:
@@ -249,21 +364,23 @@ class PackageSelectorGUI:
 
 
     def on_checkbox_checked(self, sender, app_data, user_data):
-        package = user_data
+        package_name = user_data
         check_state_str = "Checked" if app_data else "Unchecked"
-        print(f"{check_state_str} {package}")
+        print(f"{check_state_str} {package_name}")
         if app_data:
-            self.selected_packages.add(package)
+            self.selected_packages.add(package_name)
         else:
-            self.selected_packages.discard(package)
-
+            self.selected_packages.discard(package_name)
+        self.update_module_dependency_checkboxes(package_name)
         self.update_dependencies()
 
+
     def on_generate_clicked(self, sender, app_data, user_data):
-        print("BREAKPOINT SHOULD BE HIT LIKE WTF")
         dpg.set_value(self.status_text_id, "")
         self.set_ui_enabled(False)
         self.solution_name = dpg.get_value(self.solution_name_input_id)
+        #self.solution_name = set_debugging_title()
+
         try:
             if not self.solution_name.strip():
                 raise SolutionNameMissingException
@@ -272,6 +389,7 @@ class PackageSelectorGUI:
             return
 
         self.fetch_packages(self.get_checked_packages())
+        self.build_packages(self.get_checked_packages())
         self.generate_package_info_lua()
         dpg.set_value(self.status_text_id,f"{STATUS_TEXT_PREFIX} Creating folder structure...")
 
@@ -283,6 +401,7 @@ class PackageSelectorGUI:
 
     def on_update_clicked(self, sender, app_data, user_data):
         self.fetch_packages(self.get_checked_packages())
+        self.build_packages(self.get_checked_packages())
         self.generate_package_info_lua()
         self.execute_premake(SLN_DIR)
 
@@ -315,15 +434,55 @@ class PackageSelectorGUI:
             safe_configure_item(package_item.checkbox_item.checkbox_id, enabled)
             safe_configure_item(package_item.dropdown_item.dropdown_id, enabled)
 
+    # If packages need building, build them.
+    def build_packages(self, checked_packages):
+        for package_name, version in checked_packages:
+            version = version.split('|')[1] if '|' in version else version
+            cmake_presets_dir = SUPPORTED_PACKAGES_DIR / package_name / version
+            cmake_presets_file = cmake_presets_dir / CMAKE_PRESETS_FILENAME
+            if os.path.isfile(cmake_presets_file):
+                print(f"Found CMakePresets.json for {package_name} at {cmake_presets_file}")
+                package_cache_path = self.get_package_cache_path()
+                repo_path = package_cache_path / package_name / version / package_name
+                self.do_execute_cmake(cmake_presets_file, repo_path, CMAKE_BUILD_COMMAND_RELEASE)
+                self.do_execute_cmake(cmake_presets_file, repo_path, CMAKE_BUILD_COMMAND_DEBUG)
 
-    def fetch_packages(self, checked_packages):
+
+    def do_execute_cmake(self, preset_file_path, package_dir, build_command):
+        try:
+            if not os.path.isfile(preset_file_path):
+                raise FileNotFoundError(f"Preset file not found: {preset_file_path}")
+
+            shutil.copy2(preset_file_path, package_dir)
+            print(f"Copied {preset_file_path} to {package_dir}")
+
+            with tempfile.NamedTemporaryFile('w', delete=False, suffix='.bat') as batch_file:
+                batch_file.write('@echo off\n')
+                batch_file.write(f'call {VS_DEV_COMMAND}\n')
+                batch_file.write(f'cd /d "{package_dir}"\n')
+                batch_file.write(f'echo configuring {os.path.basename(package_dir)}\n')
+                batch_file.write(f'{CMAKE_CONFIGURE_COMMAND}\n')
+                batch_file.write(f'echo building {os.path.basename(package_dir)}\n')
+                batch_file.write(f'{build_command}\n')
+
+                batch_file_path = batch_file.name
+
+            os.system(f'cmd.exe /c "{batch_file_path}"')
+        except subprocess.CalledProcessError as e:
+            print(f"Error running Cmake: {e.stderr}")
+
+
+    def get_package_cache_path(self):
         package_cache_path_str = os.getenv('PACKAGE_CACHE_PATH')
         if not package_cache_path_str:
             dpg.set_value(self.status_text_id,
                           f"{STATUS_TEXT_ERROR_PREFIX} PACKAGE_CACHE_PATH env variable not set.")
             raise PackageCacheNotSetError()
+        return Path(package_cache_path_str)
 
-        package_cache_path = Path(package_cache_path_str)
+    def fetch_packages(self, checked_packages):
+
+        package_cache_path = self.get_package_cache_path()
 
         for package_name, version in checked_packages:
             version = version.split('|')[1] if '|' in version else version
@@ -377,7 +536,38 @@ class PackageSelectorGUI:
             file.write("[DEFAULT]\n")
             file.write("mode = UPDATE\n")
             file.write(f"solution_name = {self.solution_name}\n")
-        (solution_dir / 'Source').mkdir()
+        (solution_dir / 'source').mkdir()
+
+
+    def json_to_lua(self, data, indent_level=0):
+        """
+        Recursively converts a Python dictionary or list (parsed from JSON)
+        into Lua table syntax as a string, with improved readability (indents and line breaks).
+        """
+        indent = " " * (indent_level * 4)  # 4 spaces per indent level
+        next_indent = " " * ((indent_level + 1) * 4)
+
+        if isinstance(data, dict):
+            # It's a dictionary, convert it to a Lua table with key-value pairs
+            lua_table = "{\n"
+            for key, value in data.items():
+                lua_table += f"{next_indent}{key} = {self.json_to_lua(value, indent_level + 1)},\n"
+            lua_table += indent + "}"
+            return lua_table
+        elif isinstance(data, list):
+            # It's a list, convert it to a Lua table with values
+            lua_array = "{\n"
+            for item in data:
+                lua_array += f"{next_indent}{self.json_to_lua(item, indent_level + 1)},\n"
+            lua_array += indent + "}"
+            return lua_array
+        elif isinstance(data, bool):
+            return "true" if data else "false"
+        else:
+            # It's a basic data type (string, number, etc.), return as a Lua-compatible value
+            if isinstance(data, str):
+                return f'"{data}"'
+            return str(data)
 
 
     def generate_package_info_lua(self):
@@ -390,24 +580,29 @@ class PackageSelectorGUI:
         checked_packages = self.get_checked_packages()
         for package_name, version in checked_packages:
             clean_version = version.replace("git|", "")
-            # Retrieve the package data from package_store using the package name
             package_data = self.package_store.get(package_name)
 
             if package_data:
-                # Add to packages_dict
-                packages_dict[package_name] = {
-                    "version": clean_version,
-                }
+                include_in_build = True
+                package_dict = {"version": clean_version}
+                if f"{package_name}_modules" in self.dependencies:
+                    package_dict["modules"] = self.dependencies[f"{package_name}_modules"]
+                    include_in_build = False
+                package_dict["include_in_build"] = include_in_build
+                packages_dict[package_name] = package_dict
 
-        # Convert the dictionary to a JSON string and format it for Lua
+        # Convert the dictionary to a JSON string
         package_info_json = json.dumps({"packages": packages_dict}, indent=4)
-        package_info_lua = re.sub(r'\"([^\"]+)\":', r'\1 =', package_info_json)
-        package_info_content = "return {" + package_info_lua[1:-1] + "}\n"
+
+        # Parse the JSON string into a Python object (dict or list)
+        parsed_json = json.loads(package_info_json)
+
+        # Convert the parsed JSON into Lua syntax
+        lua_content = f"return {self.json_to_lua(parsed_json)}\n"
 
         # Write the content to package_info.lua
         with open(package_info_lua_path, 'w', encoding='utf-8') as file:
-            file.write(package_info_content)
-
+            file.write(lua_content)
 
     def execute_premake(self, solution_dir):
         os.chdir(solution_dir)
@@ -467,6 +662,20 @@ class PackageSelectorGUI:
         ]
         return checked_packages
 
+    def get_package_checkbox_id_by_name(self, package_name: str):
+        # Todo: this is returning an incorrect value.
+        # its a dict of id : name, but we're accessing it by name: id.
+        return self.checkbox_ids[package_name]
+
+
+    def get_module_checkbox_id_by_name(self, module_dependency_helper: MDH, module_name):
+        modules = module_dependency_helper.modules
+        if module_name not in modules:
+            raise AssertionError(f"'{module_name}' not found in modules.")
+
+        module_state = module_dependency_helper.modules[module_name]
+        return module_state.module_id
+
 
     def update_dependencies(self):
         # This is the simplest and least error-prone way to update our depdencies.
@@ -477,7 +686,20 @@ class PackageSelectorGUI:
             if dpg.get_value(package_item.checkbox_item.checkbox_id):
                 dropdown_value = dpg.get_value(package_item.dropdown_item.dropdown_id)
                 updated_dependencies[package_name] = dropdown_value
+                # Add the selected modules for SFML
+                if "module_definitions" in self.package_store[package_name]:
+                    selected_modules = []
+                    for module in self.package_store[package_name]["module_definitions"]:
+                        module_name = module
+                        module_checkbox_id = self.get_module_checkbox_id_by_name(
+                            self.module_dependency_helpers[package_name], module_name)
+                        if dpg.get_value(module_checkbox_id):
+                            selected_modules.append(module_name)
 
+                    if selected_modules:
+                        updated_dependencies[f"{package_name}_modules"] = selected_modules
+
+        self.dependencies = updated_dependencies
         # Update the dependencies file
         with open(SLN_DIR / 'dependencies.json', 'w', encoding='utf-8') as file:
             json.dump(updated_dependencies, file, indent=4)
