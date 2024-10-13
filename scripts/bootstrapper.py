@@ -538,6 +538,16 @@ class PackageSelectorGUI:
             file.write(f"solution_name = {self.solution_name}\n")
         (solution_dir / 'source').mkdir()
 
+        # Create a default project with the same name as the sln name.
+        default_project_dir = solution_dir / 'source' / self.solution_name
+        default_project_dir.mkdir()
+
+        main_cpp_file_path = default_project_dir / 'main.cpp'
+        with open(main_cpp_file_path, 'w', encoding='utf-8') as main_cpp_file:
+            main_cpp_file.write('#include <iostream>\n\n')
+            main_cpp_file.write('int main()\n{\n')
+            main_cpp_file.write('    return 0;\n')
+            main_cpp_file.write('}\n')
 
     def json_to_lua(self, data, indent_level=0):
         """
