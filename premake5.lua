@@ -19,12 +19,20 @@ end
 
 print("Working directory: " .. os.getcwd())
 
+-- Creates filters and adds user created code to user created project files.
 local function recursiveAddFiles(dir)
-    -- Adds all cpp and header files.
-    files { path.join(dir, "**.cpp"), path.join(dir, "**.h") }
+    vpaths {
+        ["Source Files/*"] = {},
+        ["Header Files/*"] = {}
+    }
 
-    -- Creates the filters for Visual Studio
-    vpaths { ["*"] = { dir .. "/**" } }
+    files { path.join(dir, "**.cpp") }
+    -- The VS filter for source files
+    vpaths { ["Source Files/*"] = { path.join(dir, "**.cpp") } }
+
+    files { path.join(dir, "**.h") }
+    -- The VS filter for header files.
+    vpaths { ["Header Files/*"] = { path.join(dir, "**.h") } }
 
     -- Premake call to add the directory to the include path.
     includedirs { dir }
@@ -45,11 +53,27 @@ print("Defined static directory: " .. static_dir)
 local static_lib_dirs = os.matchdirs(path.join(static_dir, "*")) -- Get all directories in 'static'
 print("Defined static lib directories: " .. table.concat(static_lib_dirs, ", "))
 
+local projects = os.matchdirs(path.join(source_dir, "*"))
+
+-- Set your startup project here. If not set, we'll select the first one.
+local startup_project_name = ""
+
+-- Sets the startup project to the first user-created project we find.
+if startup_project_name == "" and #projects > 0 then
+    startup_project_name = path.getname(projects[1])
+end
+
 -- Defines a sln
 workspace (_OPTIONS["sln_name"])
-architecture "x64"
-configurations { "Debug", "Release" }
-cppdialect "C++20"
+
+    architecture "x64"
+    configurations { "Debug", "Release" }
+    cppdialect "C++20"
+
+    if startup_project_name ~= "" then
+        startproject(startup_project_name)
+        print("startup project name:" .. startup_project_name)
+    end
 
 -- Newly vocal warning with recent VS22 update that is really annoying and I don't care about.
 disablewarnings { "4996" }
@@ -158,12 +182,14 @@ for _, lib_dir in ipairs(static_lib_dirs) do
 end
 
 -- Set up other projects excluding static libraries
-local projects = os.matchdirs(path.join(source_dir, "*"))
 for _, project_dir in ipairs(projects) do
     local project_name = path.getname(project_dir)
 
      -- Skip static lib directories
     if project_name ~= "_static" then
+        if startup_project_name == "" then
+            startup_project_name = project_name
+        end
         project(project_name)
         kind "ConsoleApp"
         language "C++"
@@ -190,6 +216,7 @@ for _, project_dir in ipairs(projects) do
         end
     end
 end
+
 defines{contrib_defines}
 
 filter "configurations:Debug"
