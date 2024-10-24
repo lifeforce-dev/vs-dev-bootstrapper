@@ -3,13 +3,9 @@ local package_info = require "package_info"
 
 local project_key = "sfml"
 local sfml_version = package_info.packages[project_key].version
--- TODO: Fixing this fixes everything:
--- This path needs to point to C:\package_cache\sfml\2.6.1\sfml\build\lib\<Debug/Release>
--- Need to add the debug dlls when config set to debug
--- need to point to C:\package_cache\sfml\2.6.1\sfml\extlibs\libs-msvc\x64 for external .libs (vorbis, freetype, etc)
 local sfml_ext_lib_dir = path.join(config.package_cache, project_key, sfml_version, project_key, "extlibs", "libs-msvc-universal", "x64")
 local sfml_lib_dir = path.join(config.package_cache, project_key, sfml_version, project_key, "build", "lib", "%{cfg.buildcfg}")
--- C:\package_cache\sfml\2.6.1\sfml\include
+
 local sfml_include_dir = path.join(config.package_cache, project_key, sfml_version, project_key, "include")
     location (path.join(config.sln_dir, "build", "projects", "packages"))
 
