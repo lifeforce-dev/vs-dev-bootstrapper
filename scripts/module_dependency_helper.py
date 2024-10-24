@@ -23,7 +23,7 @@ class ModuleDependencyHelper:
         self.module_dependents: defaultdict[str, list[str]] = defaultdict(list)
         self.is_initialized: bool = False
 
-        self.__add_modules(module_states)
+        self._add_modules(module_states)
         self.__init()
 
     def set_module_id_for_name(self, module_name: str, module_id: int):
@@ -43,7 +43,7 @@ class ModuleDependencyHelper:
         Returns:
             None
         """
-        self.__update_module_state(name, is_checked)
+        self._update_module_state(name, is_checked)
 
 
 
@@ -61,7 +61,7 @@ class ModuleDependencyHelper:
         return list(self.modules.values())
 
 
-    def __update_module_state(self, name: str, is_checked: bool):
+    def _update_module_state(self, name: str, is_checked: bool):
         """
         Private method used to update module dependencies when its state
         has changed.
@@ -85,11 +85,11 @@ class ModuleDependencyHelper:
                 # Ensure that the required dependency cannot be unchecked.
                 dependency_module_state.is_enabled = False
             else:
-                if self.__can_enable_dependency(dependency_name):
+                if self._can_enable_dependency(dependency_name):
                     dependency_module_state.is_enabled = True
 
 
-    def __can_enable_dependency(self, dependency_name: str) -> bool:
+    def _can_enable_dependency(self, dependency_name: str) -> bool:
         """
         We're allowed to re-enable a dependency if its not depended on by anything else.
 
@@ -112,7 +112,7 @@ class ModuleDependencyHelper:
         return True
 
 
-    def __add_modules(self, module_states: list[ModuleState]):
+    def _add_modules(self, module_states: list[ModuleState]):
         """
         Adds all the modules to the dependency graph.
         
@@ -123,10 +123,10 @@ class ModuleDependencyHelper:
             None
         """
         for module_state in module_states:
-            self.__add_module(module_state)
+            self._add_module(module_state)
 
 
-    def __add_module(self, module_state: ModuleState):
+    def _add_module(self, module_state: ModuleState):
         """
         Adds the module to the dependency graph.
 
@@ -146,6 +146,5 @@ class ModuleDependencyHelper:
             raise AssertionError("Do not call ModuleDependencyHelper with default constructor.")
 
         for module_name, module_state in self.modules.items():
-            self.__update_module_state(module_name, module_state.is_checked)
+            self._update_module_state(module_name, module_state.is_checked)
         self.is_initialized = True
-

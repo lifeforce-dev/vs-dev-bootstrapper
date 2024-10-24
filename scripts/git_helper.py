@@ -24,10 +24,10 @@ class GitHelper:
                 stderr=subprocess.PIPE,
                 text=True
             )
-            #print (f"done running git command{command}")
+            print (f"done running git command{command}")
             return result.stdout
         except subprocess.CalledProcessError as e:
-            #print(f"Error running git command: {e.stderr}")
+            print(f"Error running git command: {e.stderr}")
             return None
 
     @staticmethod
