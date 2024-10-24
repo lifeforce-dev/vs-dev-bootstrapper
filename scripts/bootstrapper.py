@@ -16,6 +16,7 @@ from module_dependency_helper import ModuleDependencyHelper as MDH, ModuleState
 from dataclasses import dataclass, field
 from collections import defaultdict
 
+# TODO: This needs to be configurable.
 #commands
 VS_DEV_COMMAND = r'"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat"'
 
