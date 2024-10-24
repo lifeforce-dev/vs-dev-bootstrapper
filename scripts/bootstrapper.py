@@ -45,20 +45,20 @@ STATUS_TEXT_PREFIX = "Working..."
 STATUS_TEXT_ERROR_PREFIX = "Error:"
 
 
-# def set_debugging_title():
-#     # Define the characters to be used
-#     valid_chars = string.ascii_letters + string.digits
-    
-#     # Generate a 5-character string
-#     short_string = ''.join(random.choices(valid_chars, k=5))
-    
-#     # Generate a 32-character string
-#     long_string = ''.join(random.choices(valid_chars, k=32))
-    
-#     # Concatenate the two strings with an underscore
-#     folder_name = f"{short_string}_{long_string}"
+def set_debugging_title():
+    """
+    By automating the build title this just makes debugging a bit
+    quicker. Picks a random short hash disambiguated by a long one.
+    """
+    valid_chars = string.ascii_letters + string.digits
 
-#     return folder_name
+    short_string = ''.join(random.choices(valid_chars, k=5))
+
+    long_string = ''.join(random.choices(valid_chars, k=32))
+
+    folder_name = f"{short_string}_{long_string}"
+
+    return folder_name
 
 
 class Mode(Enum):
